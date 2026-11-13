@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "免费网页搜索",
+    "description": "通过 Exa、Firecrawl、AnySearch 三个免 key 公开接口做网页搜索，失败自动换下一个。不需要 API key，也不产生计费；公开接口有限流。",
+    "detail": "docs/DETAIL.md"
+  }
+}

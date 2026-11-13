@@ -1,0 +1,12 @@
+# Free web search: insert the provider row, then point the web seam at it.
+#
+# The `- id: web` override replaces the COMPLETE config of that row, so both
+# fields are listed. `fetchProvider: http` is the shipped default and keeps
+# web_fetch exactly as it was; this bundle only changes search.
+- insert:
+    - id: web-search-free
+      name: 'dsh-free-web-search'
+- id: web
+  config:
+    searchProvider: free
+    fetchProvider: http

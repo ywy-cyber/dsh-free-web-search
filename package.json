@@ -1,0 +1,58 @@
+{
+  "name": "dsh-free-web-search",
+  "version": "0.1.0",
+  "description": "Keyless web search provider for DeepSeek Harness (dsh): Bing, Firecrawl and Exa with language-aware failover. No API key, no billing.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "bin": {
+    "dsh-free-web-search": "./cli.mjs"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "cli.mjs",
+    "locale/*.json",
+    "docs",
+    "icon.svg"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "web-search",
+    "search-provider",
+    "bing",
+    "firecrawl",
+    "exa",
+    "keyless",
+    "free",
+    "mcp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ywy-cyber/dsh-free-web-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ywy-cyber/dsh-free-web-search/issues"
+  },
+  "homepage": "https://github.com/ywy-cyber/dsh-free-web-search#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tests/smoke.mjs",
+    "probe": "node cli.mjs probe",
+    "search": "node cli.mjs search"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

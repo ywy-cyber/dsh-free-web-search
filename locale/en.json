@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Free web search",
+    "description": "Keyless web search through Exa, Firecrawl and AnySearch with automatic failover. Needs no API key and incurs no billing; public endpoints are rate limited.",
+    "detail": "docs/DETAIL.md"
+  }
+}

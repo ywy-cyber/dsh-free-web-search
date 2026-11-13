@@ -1,0 +1,8 @@
+# local-only records, never published
+devlog.md
+construction_notes.md
+tmp/
+
+node_modules/
+*.log
+.DS_Store
