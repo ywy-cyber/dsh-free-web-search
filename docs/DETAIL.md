@@ -6,17 +6,17 @@
 
 `web_search` 调用时按顺序尝试免 key 渠道，拿到第一份非空结果就返回。
 
-**顺序按查询语言分流**：
+**顺序按查询形态分流**：
 
 | 查询 | 顺序 | 理由 |
 |---|---|---|
-| 拉丁查询（CJK 占比 < 50%） | Bing → Firecrawl → Exa | Bing 直连几百毫秒就出结果 |
-| 中文查询（CJK 占比 ≥ 50%） | Firecrawl → Exa → Bing | Bing 会把中文长查询截断成首字，返回字典页 |
+| 单个词、不含中文（`vllm`） | Bing → Firecrawl → Exa | Bing 约 0.3 秒返回，单词查询没有可塌缩的东西 |
+| 其余全部 | Firecrawl → Exa → Bing | Bing 会把多词查询塌缩成第一个词，返回品牌官网和山寨站 |
 
 | 渠道 | 端点 | 特点 |
 |---|---|---|
-| Bing | `https://www.bing.com/search`（抓 HTML） | 最快；中文长查询不可靠 |
-| Firecrawl | `https://api.firecrawl.dev/v2/search` | 中文最稳，4–6 秒 |
+| Bing | `https://www.bing.com/search`（抓 HTML） | 最快；只对单词查询安全 |
+| Firecrawl | `https://api.firecrawl.dev/v2/search` | 综合最稳，1–6 秒，中英文多词查询都行 |
 | Exa | `https://mcp.exa.ai/mcp`（匿名 MCP） | 摘要最好，但匿名额度极易挂死 |
 
 全部失败才抛错，错误信息带每一家的失败原因。回退时结果里带一句 `(free search fell back to <渠道>)`。

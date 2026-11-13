@@ -269,22 +269,25 @@ const FIRECRAWL = { id: 'firecrawl', run: searchFirecrawl, timeoutMs: 9_000 }
 const EXA = { id: 'exa', run: searchExa, timeoutMs: 6_000 }
 
 /**
- * Chinese queries go to Firecrawl first: Bing's Chinese query rewriting can
- * collapse a longer query into a single character and return dictionary pages
- * for it, which is worse than no result at all. Latin queries are fine on Bing
- * and it answers in a few hundred milliseconds, so they keep it as the head.
- * A query counts as Chinese only when CJK characters are at least half of its
- * non-space characters, so `deepseek harness 插件` still takes the fast path.
+ * Bing collapses any multi-token query down to its first meaningful token and
+ * then answers for that token alone: `deepseek harness plugin development` comes
+ * back as DeepSeek's homepage plus look-alike domains, and the same happens to
+ * long Chinese queries (they resolve to a single character). It is only safe
+ * when the query *is* one token — there is nothing to collapse.
+ *
+ * So the chain leads with Bing only for a single token outside CJK, which is
+ * also the case where its few-hundred-millisecond answer is worth having.
+ * Everything else starts at Firecrawl, whose own index does not rewrite the
+ * query this way.
  */
-function chineseQuery(query) {
-  const chars = [...String(query)].filter((char) => !/\s/u.test(char))
-  if (chars.length === 0) return false
-  const cjk = chars.filter((char) => CJK.test(char)).length
-  return cjk / chars.length >= 0.5
+function bingCanAnswerAlone(query) {
+  const text = String(query).trim()
+  if (text === '' || CJK.test(text)) return false
+  return text.split(/\s+/u).filter(Boolean).length <= 1
 }
 
 function chainFor(query) {
-  return chineseQuery(query) ? [FIRECRAWL, EXA, BING] : [BING, FIRECRAWL, EXA]
+  return bingCanAnswerAlone(query) ? [BING, FIRECRAWL, EXA] : [FIRECRAWL, EXA, BING]
 }
 
 /** Drop repeated URLs while preserving the first occurrence. */
@@ -382,7 +385,7 @@ function createProvider() {
  */
 export function apply(ctx) {
   ctx.web.registerSearchProvider(createProvider())
-  ctx.logger?.info?.('web-search-free: registered search provider "free" (bing → firecrawl → exa)')
+  ctx.logger?.info?.('web-search-free: registered search provider "free" (single-token: bing → firecrawl → exa; otherwise firecrawl → exa → bing)')
 }
 
 export { createProvider }

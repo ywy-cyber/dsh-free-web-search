@@ -17,17 +17,17 @@ dsh 自带的搜索 provider 依赖 DeepSeek 官方 API key，两种常见场景
 
 ## 怎么搜
 
-只有一个 provider，id 是 `free`。每次请求沿一条短链依次尝试，拿到第一份非空结果就返回。顺序按查询语言分流，因为几个后端的毛病不一样：
+只有一个 provider，id 是 `free`。每次请求沿一条短链依次尝试，拿到第一份非空结果就返回。哪家打头取决于查询的**形态**，因为几个后端的毛病不一样：
 
-| 查询语言 | 顺序 | 理由 |
+| 查询 | 顺序 | 理由 |
 |---|---|---|
-| 拉丁（CJK 字符占比 < 50%） | Bing → Firecrawl → Exa | Bing 一般几百毫秒就出结果 |
-| 中文（CJK 字符占比 ≥ 50%） | Firecrawl → Exa → Bing | Bing 会把中文长查询改写成单个字，返回该字的字典页 |
+| 单个词、不含中文（`vllm`） | Bing → Firecrawl → Exa | Bing 约 0.3 秒返回，单词查询没有可塌缩的东西 |
+| 其余全部 | Firecrawl → Exa → Bing | Bing 会把多词查询塌缩成第一个词 —— 见下 |
 
 | 后端 | 端点 | 特点 |
 |---|---|---|
-| Bing | `https://www.bing.com/search`（抓 HTML） | 最快；只用于拉丁查询 |
-| Firecrawl | `https://api.firecrawl.dev/v2/search` | 综合最稳，1–6 秒，中文表现好 |
+| Bing | `https://www.bing.com/search`（抓 HTML） | 最快，但只对单词查询安全 |
+| Firecrawl | `https://api.firecrawl.dev/v2/search` | 综合最稳，1–6 秒，中文和多词查询都行 |
 | Exa | `https://mcp.exa.ai/mcp`（匿名 MCP） | 摘要质量最好，但匿名额度极易挂死 |
 
 抛错的后端会被停用 3 分钟，记在内存和 `~/.dsh/web-search-free.state.json` 里，避免每次搜索都去撞一个正在限流的端点。如果所有后端都在停用期，会清空记录强行跑一轮 —— 搜索不会因为过期的记账而整体失败。
@@ -86,8 +86,8 @@ node cli.mjs status           # 看 profile 里 provider 指向
 - **三家都是匿名额度**，没有任何配额保证。会限流、会改结构、会突然不认你。
 - **不支持时间过滤**，`timeRange` 这类参数会被忽略。
 - **不做相关性重排**，只按 URL 去重和截断，顺序来自后端。
-- **Bing 是抓 HTML 解析的**，页面结构一变就断。而它是拉丁查询的第一顺位，所以这是最脆的一环。
-- **Bing 会改写中文长查询**，所以中文查询不从它开始。
+- **Bing 是抓 HTML 解析的**，页面结构一变就断。
+- **Bing 会把多词查询塌缩成第一个词**：查 `deepseek harness plugin development`，它返回 DeepSeek 官网加一堆山寨站；中文长查询则塌缩成单个字。所以它只对单词查询打头。DeepSeek 官方搜索 API 也是同一毛病 —— 两边返回的结果集几乎一样。
 - **Exa 的匿名额度不可靠**，只作兜底。
 - 单后端超时：Bing 8 秒 / Firecrawl 9 秒 / Exa 6 秒。全挂时最坏约 23 秒。
 - 假定出网直连。走代理时需要在启动 dsh 的进程里设 `HTTPS_PROXY` 和 `NODE_USE_ENV_PROXY=1` —— Node 的 `fetch` 不读系统代理。

@@ -17,17 +17,17 @@ This plugin replaces the search side of `ctx.web` with providers that need no cr
 
 ## How it searches
 
-One provider, id `free`. Per request it walks a short chain and returns the first non-empty result set. The order depends on the query language, because the backends fail in different ways:
+One provider, id `free`. Per request it walks a short chain and returns the first non-empty result set. Which backend leads depends on the shape of the query, because they fail in different ways:
 
-| Query language | Order | Why |
+| Query | Order | Why |
 |---|---|---|
-| Latin (CJK < 50% of characters) | Bing → Firecrawl → Exa | Bing answers in a few hundred milliseconds |
-| Chinese (CJK ≥ 50%) | Firecrawl → Exa → Bing | Bing rewrites long Chinese queries into a single character and returns dictionary pages for it |
+| Single token, non-CJK (`vllm`) | Bing → Firecrawl → Exa | Bing answers in ~0.3 s and a one-token query has nothing to collapse |
+| Everything else | Firecrawl → Exa → Bing | Bing collapses multi-token queries to their first token — see below |
 
 | Backend | Endpoint | Notes |
 |---|---|---|
-| Bing | `https://www.bing.com/search` (HTML) | Fastest. Latin queries only — see above. |
-| Firecrawl | `https://api.firecrawl.dev/v2/search` | Most reliable overall, 1–6 s, handles Chinese well |
+| Bing | `https://www.bing.com/search` (HTML) | Fastest, but only safe for one-token queries |
+| Firecrawl | `https://api.firecrawl.dev/v2/search` | Most reliable overall, 1–6 s, handles Chinese and multi-word queries |
 | Exa | `https://mcp.exa.ai/mcp` (anonymous MCP) | Best snippets, but the anonymous quota dies hard and often |
 
 A backend that throws is parked for 3 minutes, in memory and in `~/.dsh/web-search-free.state.json`, so a rate-limited endpoint is not paid for on every search. If every backend is parked, the parking lot is cleared and one real round is attempted — search never fails on stale bookkeeping.
@@ -86,8 +86,8 @@ Be aware of these before relying on it:
 - **All three backends are anonymous tiers.** No quota is guaranteed. They rate-limit, they change response shapes, and they can start refusing you without notice.
 - **No time filtering.** `timeRange`-style parameters are ignored.
 - **No relevance re-ranking.** Results are deduplicated by URL and truncated; order comes from the backend.
-- **Bing results are scraped from HTML.** A layout change breaks the parser. Bing is the first choice for Latin queries, so this is the most fragile part.
-- **Bing mangles long Chinese queries.** That is why Chinese queries do not start there.
+- **Bing results are scraped from HTML.** A layout change breaks the parser.
+- **Bing collapses multi-token queries to their first token.** Ask it `deepseek harness plugin development` and you get DeepSeek's homepage plus look-alike domains; a long Chinese query collapses to a single character. That is why it only leads for one-token queries. DeepSeek's own search API behaves the same way — the two return nearly identical result sets.
 - **Exa's anonymous quota is unreliable.** It is a last resort, not a primary.
 - Per-backend deadline: Bing 8 s, Firecrawl 9 s, Exa 6 s. Worst case with everything failing is about 23 s.
 - Direct outbound access is assumed. Behind a proxy, set `HTTPS_PROXY` and `NODE_USE_ENV_PROXY=1` in the process that runs dsh — Node's `fetch` does not read the system proxy.
